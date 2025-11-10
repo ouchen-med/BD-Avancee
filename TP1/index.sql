@@ -393,8 +393,8 @@ GROUP BY
 ORDER BY category, rental_year, rental_month;
 
 -- QUESTIONS:
--- 1. Record the Planning Time: _____ ms
--- 2. Record the Execution Time: _____ ms
+-- 1. Record the Planning Time: 2.275ms
+-- 2. Record the Execution Time:30.363 ms
 -- 3. What is the most time-consuming operation? 
 --    (Look for the highest cost in the plan)
 --    ANSWER: ___________________________________________________________
