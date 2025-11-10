@@ -289,11 +289,11 @@ WHERE title = 'ACADEMY DINOSAUR';
 
 -- QUESTIONS:
 -- 1. What changed in the query plan? (Look for "Index Scan")
---    ANSWER: ___________________________________________________________
+   ANSWER: ___________Using idx_film_title________________________________________________
 -- 
--- 2. What is the new execution time? ___________
+-- 2. What is the new execution time? _____:0.146ms______
 -- 
--- 3. Calculate the speedup: (Old Time / New Time) = _____ x faster
+-- 3. Calculate the speedup: (Old Time / New Time) = 4 x faster
 
 
 -- ----------------------------------------------------------------------------
@@ -319,7 +319,7 @@ SELECT * FROM film
 WHERE title = 'ACADEMY DINOSAUR';
 
 -- QUESTION: How many buffers were hit? (Look for 'Buffers: shared hit=X')
--- ANSWER: ___________________________________________________________
+-- ANSWER: _______________  Buffers: shared hit=3____________________________________________
 
 
 -- ============================================================================
@@ -341,7 +341,7 @@ WHERE l.name = 'English'
 ORDER BY f.title;
 
 -- QUESTION: What is the execution time for this join query?
--- ANSWER: ___________________________________________________________
+-- ANSWER: ________________________2.674ms___________________________________
 
 
 -- ----------------------------------------------------------------------------
