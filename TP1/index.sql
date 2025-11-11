@@ -577,6 +577,8 @@ WHERE first_name = 'MARY' AND last_name = 'SMITH';
 
 -- Example: Find all rentals for a specific customer
 -- Your query here:
+--Analyze:
+
 
 EXPLAIN ANALYZE
 SELECT r.rental_date, f.title
