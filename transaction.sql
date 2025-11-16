@@ -151,3 +151,25 @@ VALUES (1, NULL, 'deposit');  -- Cela génère ERROR
 -- ============================================================================
 -- FIN DU TP
 -- ============================================================================
+SELECT rolname FROM pg_roles;
+
+
+SELECT rolname 
+FROM pg_roles
+WHERE rolname NOT LIKE 'pg_%';
+---------------------------------------------------------------------------
+
+SELECT * FROM clients WHERE id = 1;
+BEGIN;
+
+-- تحديث بيانات العميل
+UPDATE clients SET balance = balance + 500 WHERE id = 1;
+------------------------------------------------------
+
+
+
+
+GRANT CONNECT ON DATABASE testdb TO mohamed;
+GRANT USAGE ON SCHEMA public TO mohamed;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO mohamed;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO mohamed;
