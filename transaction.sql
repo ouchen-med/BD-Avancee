@@ -1,171 +1,93 @@
--- ============================================================================
--- TP COMPLET : Transactions dans PostgreSQL
--- Base utilisée : testdb
--- Fichier unique avec commentaires détaillés
--- ============================================================================
+/**
+ * Fichier : transaction_pagila.sql
+ * Base de données : Pagila (PostgreSQL)
+ * Description : Démonstration des transactions (COMMIT et ROLLBACK)
+ * en ajustant le coût de remplacement (replacement_cost) de films.
+ */
 
--- ---------------------------------------------------------------------------
--- 1) Se connecter à la base testdb (exécuté dans psql, non dans ce fichier)
--- \c testdb
--- ---------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- 1. PRÉPARATION ET ÉTAT INITIAL
+-------------------------------------------------------------------------------
 
+-- Désactive le mode autocommit si vous utilisez un client qui l'active par défaut.
+-- En psql, le mode est manuel par défaut.
+-- SET autocommit = OFF;
 
--- ============================================================================
--- 2) Création des tables
--- ============================================================================
+-- IDs des films utilisés (supposons 1 et 5 pour les exemples courants)
+-- NOTE : Ces IDs sont généralement stables dans Pagila.
+-- Film 1 : 'ACADEMY DINOSAUR'
+-- Film 5 : 'ADIEU GENERAL'
 
--- Table des clients
-CREATE TABLE IF NOT EXISTS clients (
-    id SERIAL PRIMARY KEY,
-    nom VARCHAR(50),
-    balance NUMERIC(12,2) DEFAULT 0
-);
+-- Affichage des coûts initiaux de remplacement pour les films 1 et 5
+SELECT 
+    '--- 1. ÉTAT INITIAL DES COÛTS ---' AS Etape,
+    film_id, 
+    title, 
+    replacement_cost
+FROM 
+    film
+WHERE 
+    film_id IN (1, 5);
 
--- Table des opérations (historique)
-CREATE TABLE IF NOT EXISTS operations (
-    id SERIAL PRIMARY KEY,
-    client_id INT REFERENCES clients(id),
-    montant NUMERIC(12,2),
-    type VARCHAR(20),
-    date_op TIMESTAMP DEFAULT NOW()
-);
+-------------------------------------------------------------------------------
+-- 2. SCÉNARIO 1 : AJUSTEMENT RÉUSSI (COMMIT)
+-------------------------------------------------------------------------------
 
+-- Objectif : Augmenter le coût du Film 1 de 1.00.
 
--- ============================================================================
--- 3) Insertion des données initiales
--- ============================================================================
+-- DÉBUT DE LA TRANSACTION :
+BEGIN; 
 
-INSERT INTO clients (nom, balance) VALUES
-('Ali', 1000),
-('Sara', 2000),
-('Youssef', 500);
+-- 2.1. Augmentation du coût pour 'ACADEMY DINOSAUR' (Film 1)
+-- Par exemple, si le coût initial est 20.99, il passera à 21.99.
+UPDATE film
+SET replacement_cost = replacement_cost + 1.00
+WHERE film_id = 1;
 
+-- Vérification de l'état interne (Film 1 a changé)
+SELECT '--- T1 INTERNE (AVANT COMMIT) ---' AS Etape, film_id, title, replacement_cost FROM film WHERE film_id IN (1, 5); 
 
--- ============================================================================
--- 4) Exercice 1 : Transaction simple
--- Objectif : virement de 300 DH de Ali (id=1) vers Sara (id=2)
--- Tout doit réussir sinon tout est annulé.
--- ============================================================================
-
-BEGIN;
-
-UPDATE clients SET balance = balance - 300 WHERE id = 1;
-UPDATE clients SET balance = balance + 300 WHERE id = 2;
-
+-- COMMIT : Validation de l'ajustement. Le changement est permanent.
 COMMIT;
 
---✅ Exemple pour vérifier (check) résultat 
+-- Vérification de l'état final après COMMIT
+SELECT '--- 2. ÉTAT APRÈS COMMIT (Film 1 modifié) ---' AS Etape, film_id, title, replacement_cost FROM film WHERE film_id IN (1, 5);
 
-SELECT id, nom, balance FROM clients WHERE id IN (1, 2);
+-------------------------------------------------------------------------------
+-- 3. SCÉNARIO 2 : AJUSTEMENT ÉCHOUÉ (ROLLBACK)
+-------------------------------------------------------------------------------
 
--- Fin Exercice 1
+-- Objectif : Augmenter le coût du Film 5, puis simuler une erreur, et annuler.
 
-
--- ============================================================================
--- 5) Exercice 2 : ROLLBACK en cas d'erreur
--- Objectif : tenter un virement de 1000 DH de Youssef (id=3) 
--- vers Ali (id=1) → Mais il n'a que 500 DH. On annule tout.
--- ============================================================================
-
+-- DÉBUT DE LA TRANSACTION :
 BEGIN;
 
--- Vérification manuelle du solde (facultatif)
-SELECT balance FROM clients WHERE id = 3;
+-- 3.1. Augmentation du coût pour 'ADIEU GENERAL' (Film 5)
+-- Par exemple, si le coût initial est 20.99, il passera à 21.99 dans cette transaction.
+UPDATE film
+SET replacement_cost = replacement_cost + 1.00
+WHERE film_id = 5;
 
--- Cette opération est "logiquement incorrecte"
-UPDATE clients SET balance = balance - 1000 WHERE id = 3;
+-- Vérification de l'état interne (Le coût du Film 5 a augmenté)
+SELECT '--- T2 INTERNE (AVANT ROLLBACK) ---' AS Etape, film_id, title, replacement_cost FROM film WHERE film_id IN (1, 5); 
 
--- On décide d'annuler (ROLLBACK manuel)
+-- 3.2. Simulation d'une erreur critique :
+-- Tentons de mettre un coût négatif (ce qui devrait provoquer une erreur
+-- si une contrainte CHECK existe, mais pour la démo, nous simulons l'échec).
+-- Dans ce TP, nous faisons un ROLLBACK manuel pour simuler l'échec d'une étape suivante.
+
+-- Le système s'arrête ici car une autre opération a échoué (simulée).
+
+-- ROLLBACK : Annuler TOUS les changements depuis le BEGIN.
+-- L'augmentation du coût du Film 5 est annulée.
 ROLLBACK;
--- Fin Exercice 2
 
+-- Vérification de l'état final après ROLLBACK
+SELECT '--- 3. ÉTAT APRÈS ROLLBACK (Film 5 non modifié) ---' AS Etape, film_id, title, replacement_cost FROM film WHERE film_id IN (1, 5);
 
--- ============================================================================
--- 6) Exercice 3 : SAVEPOINT
--- Objectif :
---  - Ajouter une opération correcte
---  - Tenter une opération incorrecte (client inexistant)
---  - Annuler uniquement la partie erronée
--- ============================================================================
+-- NOTE : Après le ROLLBACK, le coût de 'ADIEU GENERAL' est revenu à la valeur 
+-- qu'il avait avant le BEGIN de la Transaction 2.
 
-BEGIN;
-
--- 1) Opération correcte
-INSERT INTO operations (client_id, montant, type)
-VALUES (1, 200, 'deposit');
-
--- Création du SAVEPOINT
-SAVEPOINT sp1;
-
--- 2) Opération incorrecte → client_id = 9999 n'existe pas
-INSERT INTO operations (client_id, montant, type)
-VALUES (9999, 500, 'withdraw');  -- ERREUR volontaire
-
--- 3) On annule uniquement l'instruction fautive
-ROLLBACK TO sp1;
-
--- 4) La première opération reste valide
-COMMIT;
--- Fin Exercice 3
-
-
--- ============================================================================
--- 7) Exercice 4 : Isolation Level
--- Note :
--- Ce test doit être fait dans 2 sessions différentes de psql.
--- Ici nous ne mettons que les commandes.
--- ============================================================================
-
--- Session A :
--- BEGIN;
--- SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
--- SELECT * FROM clients WHERE id = 1;
-
--- Session B :
--- UPDATE clients SET balance = balance + 100 WHERE id = 1;
-
--- Retour dans Session A :
--- SELECT * FROM clients WHERE id = 1;   -- Même résultat qu’au début
--- COMMIT;
-
-
--- ============================================================================
--- 8) Exercice 5 : Erreur → ROLLBACK automatique
--- Objectif : provoquer une erreur SQL pour voir comment PostgreSQL gère 
--- automatiquement la transaction.
--- ============================================================================
-
-BEGIN;
-
--- montant ne doit pas être NULL
-INSERT INTO operations (client_id, montant, type)
-VALUES (1, NULL, 'deposit');  -- Cela génère ERROR
-
--- PostgreSQL va automatiquement mettre la transaction en état "aborted"
--- Toute tentative de COMMIT échouera :
--- COMMIT;  -- donnera: "no transaction in progress"
-
--- Fin Exercice 5
-
-
--- ============================================================================
+-------------------------------------------------------------------------------
 -- FIN DU TP
--- ============================================================================
-SELECT rolname FROM pg_roles;
-
-
-SELECT rolname 
-FROM pg_roles
-WHERE rolname NOT LIKE 'pg_%';
----------------------------------------------------------------------------
-
-SELECT * FROM clients WHERE id = 1;
-BEGIN;
-
--- تحديث بيانات العميل
-UPDATE clients SET balance = balance + 500 WHERE id = 1;
-------------------------------------------------------
-
-
-
-
+-------------------------------------------------------------------------------
