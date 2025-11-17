@@ -402,25 +402,25 @@ CREATE SCHEMA app_data;
 -- which rows they can actually access.
 
 -- TODO: Create tasks table in app_data schema
--- CREATE TABLE app_data.tasks (
---     task_id SERIAL PRIMARY KEY,
---     task_name VARCHAR(200) NOT NULL,
---     description TEXT,
---     assigned_to VARCHAR(100) NOT NULL,
---     completed BOOLEAN DEFAULT FALSE,
---     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
--- );
+ CREATE TABLE app_data.tasks (
+     task_id SERIAL PRIMARY KEY,
+     task_name VARCHAR(200) NOT NULL,
+     description TEXT,
+     assigned_to VARCHAR(100) NOT NULL,
+     completed BOOLEAN DEFAULT FALSE,
+     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+ );
 
 -- TODO: Enable Row-Level Security on the tasks table
--- ALTER TABLE app_data.tasks ENABLE ROW LEVEL SECURITY;
+ ALTER TABLE app_data.tasks ENABLE ROW LEVEL SECURITY;
 
 -- CHECKPOINT: Verify RLS is enabled
--- SELECT 
---     schemaname,
---     tablename,
---     rowsecurity
--- FROM pg_tables
--- WHERE tablename = 'tasks' AND schemaname = 'app_data';
+ SELECT 
+     schemaname,
+     tablename,
+     rowsecurity
+ FROM pg_tables
+ WHERE tablename = 'tasks' AND schemaname = 'app_data';
 
 -- Expected: rowsecurity = t (true)
 
@@ -435,9 +435,9 @@ CREATE SCHEMA app_data;
 -- The policy we'll create: users can only see rows where assigned_to matches their username.
 
 -- TODO: Create a policy named 'user_tasks_policy'
--- CREATE POLICY user_tasks_policy ON app_data.tasks
---     FOR ALL
---     USING (assigned_to = current_user);
+ CREATE POLICY user_tasks_policy ON app_data.tasks
+    FOR ALL
+     USING (assigned_to = current_user);
 
 -- EXPLANATION:
 -- - FOR ALL: Policy applies to all operations (SELECT, INSERT, UPDATE, DELETE)
@@ -445,22 +445,12 @@ CREATE SCHEMA app_data;
 -- - current_user: Special PostgreSQL function that returns the current username
 
 -- CHECKPOINT: Verify policy was created
--- SELECT 
---     schemaname,
---     tablename,
---     policyname,
---     permissive,
---     roles,
---     cmd,
---     qual
--- FROM pg_policies
--- WHERE tablename = 'tasks' AND schemaname = 'app_data';
 
 -- TODO: Grant privileges on tasks table
--- GRANT SELECT, INSERT, UPDATE, DELETE ON app_data.tasks TO app_user;
--- GRANT SELECT, INSERT, UPDATE, DELETE ON app_data.tasks TO analyst_user;
--- GRANT USAGE, SELECT ON SEQUENCE app_data.tasks_task_id_seq TO app_user;
--- GRANT USAGE, SELECT ON SEQUENCE app_data.tasks_task_id_seq TO analyst_user;
+ GRANT SELECT, INSERT, UPDATE, DELETE ON app_data.tasks TO app_user;
+ GRANT SELECT, INSERT, UPDATE, DELETE ON app_data.tasks TO analyst_user;
+ GRANT USAGE, SELECT ON SEQUENCE app_data.tasks_task_id_seq TO app_user;
+ GRANT USAGE, SELECT ON SEQUENCE app_data.tasks_task_id_seq TO analyst_user;
 
 
 -- ----------------------------------------------------------------------------
@@ -469,30 +459,28 @@ CREATE SCHEMA app_data;
 
 -- TODO: Insert test data as postgres (superuser)
 -- Note: postgres can insert data for any user (bypasses RLS)
--- INSERT INTO app_data.tasks (task_name, description, assigned_to)
--- VALUES 
---     ('Complete security lab', 'Finish Exercise 4', 'app_user'),
---     ('Review RLS concepts', 'Understand RLS policies', 'app_user'),
---     ('Analyze query performance', 'Run EXPLAIN ANALYZE', 'analyst_user'),
---     ('Write report', 'Document findings', 'analyst_user');
+ INSERT INTO app_data.tasks (task_name, description, assigned_to)
+ VALUES 
+     ('Complete security lab', 'Finish Exercise 4', 'app_user'),
+     ('Review RLS concepts', 'Understand RLS policies', 'app_user'),
+     ('Analyze query performance', 'Run EXPLAIN ANALYZE', 'analyst_user'),
+     ('Write report', 'Document findings', 'analyst_user');
 
 -- VERIFY: As postgres, view all tasks (should see all 4)
--- SELECT task_id, task_name, assigned_to FROM app_data.tasks ORDER BY task_id;
+ SELECT task_id, task_name, assigned_to FROM app_data.tasks ORDER BY task_id;
 
 -- TEST AS APP_USER:
 -- Switch to app_user: \c pagila app_user
 
 -- QUERY: View tasks (should only see tasks assigned to app_user)
--- SELECT task_id, task_name, assigned_to FROM app_data.tasks ORDER BY task_id;
+ SELECT task_id, task_name, assigned_to FROM app_data.tasks ORDER BY task_id;
 -- Expected: Only 2 rows (both assigned_to = 'app_user')
 
 -- TRY: Insert a task for yourself (should work)
--- INSERT INTO app_data.tasks (task_name, description, assigned_to)
--- VALUES ('My new task', 'Testing RLS INSERT', 'app_user');
 
 -- TRY: Insert a task for someone else (will insert, but policy prevents violation)
--- INSERT INTO app_data.tasks (task_name, description, assigned_to)
--- VALUES ('Task for analyst', 'This should fail policy check', 'analyst_user');
+ INSERT INTO app_data.tasks (task_name, description, assigned_to)
+ VALUES ('Task for analyst', 'This should fail policy check', 'analyst_user');
 -- Expected: Error because policy check fails on INSERT
 
 -- Switch back: \c pagila postgres
@@ -501,13 +489,13 @@ CREATE SCHEMA app_data;
 -- Switch to analyst_user: \c pagila analyst_user
 
 -- QUERY: View tasks (should only see tasks assigned to analyst_user)
--- SELECT task_id, task_name, assigned_to FROM app_data.tasks ORDER BY task_id;
+ SELECT task_id, task_name, assigned_to FROM app_data.tasks ORDER BY task_id;
 -- Expected: Only 2 rows (both assigned_to = 'analyst_user')
 
 -- TRY: Update app_user's task (should have no effect - can't see those rows)
--- UPDATE app_data.tasks 
--- SET completed = TRUE 
--- WHERE assigned_to = 'app_user';
+ UPDATE app_data.tasks 
+ SET completed = TRUE 
+ WHERE assigned_to = 'app_user';
 -- Result: UPDATE 0 (can't see rows with assigned_to = 'app_user')
 
 -- Switch back: \c pagila postgres
