@@ -64,7 +64,7 @@ BEGIN
     INTO cust_name, rental_count
     FROM customer c
     LEFT JOIN rental r ON c.customer_id = r.customer_id
-    WHERE c.customer_id = 5  -- Fill in the customer_id
+    WHERE c.customer_id = 1 -- Fill in the customer_id
     GROUP BY c.first_name;
     
     -- Display the result
@@ -211,7 +211,7 @@ BEGIN
 END $$;
 
 
--- ============================================================================
+-- ====================================================================================================================================================================================================================================
 -- PART 2: WORKING WITH QUERY RESULTS (25 points)
 -- ============================================================================
 
@@ -236,15 +236,15 @@ BEGIN
     -- Loop through all categories
     FOR category_rec IN 
         SELECT category_id, name
-        FROM ___  -- Fill in the table name
+        FROM category  -- Fill in the table name
         ORDER BY name
     LOOP
         category_count := category_count + 1;
-        RAISE NOTICE '%: %', category_count, category_rec.___);  -- Fill in column
+        RAISE NOTICE '%: %', category_count, category_rec.name;  -- Fill in column
     END LOOP;
     
     RAISE NOTICE '';
-    RAISE NOTICE 'Total categories: %', ___;
+    RAISE NOTICE 'Total categories: %', category_count;
 END $$;
 
 
@@ -276,32 +276,33 @@ BEGIN
         SELECT payment_id, amount
         FROM payment
         ORDER BY payment_date
-        LIMIT ___  -- Fill in the limit
+        LIMIT 50
     LOOP
         total_count := total_count + 1;
-        total_amount := total_amount + payment_rec.___);  -- Fill in column
+        total_amount := total_amount + payment_rec.amount;
         
         -- Categorize payment
         IF payment_rec.amount >= 5.00 THEN
-            ___ := ___ + 1;  -- Increment high value counter
-        ELSIF payment_rec.amount < ___ THEN  -- Fill in threshold
+            high_value_count := high_value_count + 1;
+        ELSIF payment_rec.amount < 2.00 THEN
             low_value_count := low_value_count + 1;
         END IF;
     END LOOP;
     
     -- Display summary
     RAISE NOTICE '=== SUMMARY ===';
-    RAISE NOTICE 'Total payments: %', ___;
+    RAISE NOTICE 'Total payments: %', total_count;
     RAISE NOTICE 'Total amount: $%', total_amount;
     RAISE NOTICE 'High value (>=$5): %', high_value_count;
-    RAISE NOTICE 'Low value (<$2): %', ___;
+    RAISE NOTICE 'Low value (<$2): %', low_value_count;
 END $$;
+
 
 
 -- ----------------------------------------------------------------------------
 -- Exercise 2.3: Customer Spending Analysis (8 points)
 -- ----------------------------------------------------------------------------
--- TODO: Write a DO block that analyzes customer spending:
+-- TODO: Write a DO block that analyzes customer spending:-
 -- 1. For the first 20 customers (by customer_id)
 -- 2. Calculate total amount spent by each customer
 -- 3. Categorize customers as:
@@ -316,17 +317,45 @@ END $$;
 
 DO $$
 DECLARE
-    -- TODO: Declare variables
+    cust_rec RECORD;          
+    total_amount NUMERIC(10,2);
     
+    vip_count INTEGER := 0;
+    regular_count INTEGER := 0;
+    occasional_count INTEGER := 0;
 BEGIN
-    -- TODO: Initialize counters
+    RAISE NOTICE '=== CUSTOMER SPENDING ANALYSIS ===';
+    RAISE NOTICE '';
+    --loop:
+    FOR cust_rec IN
+        SELECT c.customer_id, c.first_name, c.last_name, COALESCE(SUM(p.amount),0) AS total_spent
+        FROM customer c
+        LEFT JOIN payment p ON c.customer_id = p.customer_id
+        GROUP BY c.customer_id, c.first_name, c.last_name
+        ORDER BY c.customer_id
+        LIMIT 20
+    LOOP
+        total_amount := cust_rec.total_spent;
+        
+        -- Categorize :
+        IF total_amount > 150 THEN
+            vip_count := vip_count + 1;
+            RAISE NOTICE 'Customer % % (ID: %) - Total: $% -> VIP', cust_rec.first_name, cust_rec.last_name, cust_rec.customer_id, total_amount;
+        ELSIF total_amount >= 75 THEN
+            regular_count := regular_count + 1;
+            RAISE NOTICE 'Customer % % (ID: %) - Total: $% -> Regular', cust_rec.first_name, cust_rec.last_name, cust_rec.customer_id, total_amount;
+        ELSE
+            occasional_count := occasional_count + 1;
+            RAISE NOTICE 'Customer % % (ID: %) - Total: $% -> Occasional', cust_rec.first_name, cust_rec.last_name, cust_rec.customer_id, total_amount;
+        END IF;
+    END LOOP;
     
-    -- TODO: FOR loop through customers with their spending
-    
-    -- TODO: Categorize and count
-    
-    -- TODO: Display results
-    
+    -- Display summary
+    RAISE NOTICE '';
+    RAISE NOTICE '=== SUMMARY ===';
+    RAISE NOTICE 'VIP customers: %', vip_count;
+    RAISE NOTICE 'Regular customers: %', regular_count;
+    RAISE NOTICE 'Occasional customers: %', occasional_count;
 END $$;
 
 
@@ -354,10 +383,10 @@ DECLARE
 BEGIN
     RAISE NOTICE '=== CALCULATING FACTORIAL OF % ===', target;
     
-    WHILE counter <= ___ LOOP  -- Fill in the target
-        factorial := factorial * ___);  -- Multiply by counter
-        RAISE NOTICE '%! = %', counter, ___);  -- Display result
-        counter := counter + ___);  -- Increment counter
+    WHILE counter <= target LOOP  -- Fill in the target
+        factorial := factorial * counter;  -- Multiply by counter
+       -- RAISE NOTICE '%! = %', counter, factorial;  -- Display result
+        counter := counter + 1;  -- Increment counter
     END LOOP;
     
     RAISE NOTICE '';
@@ -386,7 +415,7 @@ DECLARE
     premium_films_cursor CURSOR FOR
         SELECT film_id, title, rental_rate
         FROM film
-        WHERE rental_rate > ___  -- Fill in the threshold
+        WHERE rental_rate >  3.00  -- Fill in the threshold
         ORDER BY rental_rate DESC
         LIMIT 10;
     
@@ -397,14 +426,14 @@ BEGIN
     RAISE NOTICE '';
     
     -- Loop through cursor
-    FOR film_rec IN ___ LOOP  -- Fill in cursor name
+     FOR film_rec IN premium_films_cursor LOOP
         film_count := film_count + 1;
         RAISE NOTICE '%: "%" - $%', 
-            film_count, film_rec.___, film_rec.rental_rate;  -- Fill in column
+            film_count, film_rec.title, film_rec.rental_rate;
     END LOOP;
     
     RAISE NOTICE '';
-    RAISE NOTICE 'Total films processed: %', ___;
+    RAISE NOTICE 'Total films processed: %',film_count ;
 END $$;
 
 
@@ -432,16 +461,16 @@ BEGIN
     FOR store_rec IN
         SELECT s.store_id, a.address, ci.city, co.country
         FROM store s
-        JOIN ___ a ON s.address_id = a.address_id  -- Fill in table
+        JOIN address a ON s.address_id = a.address_id  
         JOIN city ci ON a.city_id = ci.city_id
-        JOIN country co ON ci.country_id = co.___  -- Fill in column
+        JOIN country co ON ci.country_id = co.country_id   
         ORDER BY s.store_id
     LOOP
         store_count := store_count + 1;
         RAISE NOTICE 'Store #%: %, %, %', 
-            store_rec.___, 
+            store_rec.store_id,       
             store_rec.address,
-            store_rec.___,  -- Fill in column
+            store_rec.city,            
             store_rec.country;
     END LOOP;
     
@@ -470,7 +499,7 @@ DECLARE
     active_customers_cursor CURSOR FOR
         SELECT customer_id, first_name, last_name
         FROM customer
-        WHERE activebool = ___  -- Fill in TRUE
+        WHERE activebool = true   -- Fill in TRUE
         ORDER BY customer_id
         LIMIT 15;
     
@@ -481,26 +510,26 @@ BEGIN
     RAISE NOTICE '';
     
     -- Step 1: OPEN the cursor
-    ___ active_customers_cursor;  -- Fill in OPEN keyword
+    OPEN active_customers_cursor;  -- Fill in OPEN keyword
     
     -- Step 2: LOOP with FETCH
     LOOP
         -- Fetch next row
-        ___ active_customers_cursor INTO customer_rec;  -- Fill in FETCH
+        FETCH active_customers_cursor INTO customer_rec;  -- Fill in FETCH
         
         -- Exit when no more rows
-        EXIT WHEN NOT ___;  -- Fill in FOUND
+        EXIT WHEN NOT FOUND;  -- Fill in FOUND
         
         customer_count := customer_count + 1;
         RAISE NOTICE '%: % % (ID: %)', 
             customer_count,
             customer_rec.first_name,
-            customer_rec.___,  -- Fill in last_name
+            customer_rec.last_name,  -- Fill in last_name
             customer_rec.customer_id;
     END LOOP;
     
     -- Step 3: CLOSE the cursor
-    ___ active_customers_cursor;  -- Fill in CLOSE keyword
+    CLOSE active_customers_cursor;  -- Fill in CLOSE keyword
     
     RAISE NOTICE '';
     RAISE NOTICE 'Total active customers processed: %', customer_count;
