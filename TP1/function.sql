@@ -101,24 +101,30 @@ DECLARE
 BEGIN
     -- TODO: If return_date is NULL, use CURRENT_TIMESTAMP
     IF return_date_param IS NULL THEN
-        actual_return_date := ___;
+        actual_return_date :=  CURRENT_DATE;
     ELSE
-        actual_return_date := ___;
+        actual_return_date := return_date_param ;
     END IF;
     
     -- TODO: Calculate days between dates
     -- HINT: Use DATE_PART('day', timestamp1 - timestamp2) or EXTRACT
-    days_difference := ___;
+    days_difference := DATE_PART('day', actual_return_date -  rental_date_param);
     
     RETURN days_difference;
 END;
 $$ LANGUAGE plpgsql;
 
 -- Test your function:
--- SELECT rental_id, rental_date, return_date,
---        calculate_rental_days(rental_date, return_date) AS rental_days
--- FROM rental
--- LIMIT 10;
+SELECT rental_id, rental_date, return_date,
+       calculate_rental_days(rental_date, return_date) AS rental_days
+ FROM rental
+ LIMIT 10;
+
+ 
+SELECT rental_id, rental_date, return_date,
+       calculate_rental_days(rental_date::timestamp, return_date::timestamp) AS rental_days
+FROM rental
+LIMIT 10;
 
 
 -- Exercise 1.4: Calculate Late Fee 
