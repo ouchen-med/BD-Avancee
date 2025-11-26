@@ -74,15 +74,15 @@ BEGIN
     END IF;
     
     -- TODO: Return formatted string
-    RETURN ___ || ' ' || ___ || ' ' || ___ || ' minutes';
+    RETURN hours || ' hours ' || minutes || ' minutes';
 END;
 $$ LANGUAGE plpgsql;
 
 -- Test your function:
  SELECT title, length, format_film_duration(length) AS formatted_duration
--- FROM film
--- WHERE length IN (46, 120, 185)
--- LIMIT 3;
+ FROM film
+ WHERE length IN (46, 120, 185)
+ LIMIT 3;
 
 
 -- Exercise 1.3: Calculate Rental Days 
