@@ -115,6 +115,9 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Test your function:
+-- Test your function:
+
+
 SELECT rental_id, rental_date, return_date,
        calculate_rental_days(rental_date, return_date) AS rental_days
  FROM rental
