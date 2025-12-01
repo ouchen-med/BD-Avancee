@@ -64,13 +64,24 @@ BEGIN
     INTO cust_name, rental_count
     FROM customer c
     LEFT JOIN rental r ON c.customer_id = r.customer_id
-    WHERE c.customer_id = 1 -- Fill in the customer_id
+    WHERE c.customer_id = 3 -- Fill in the customer_id
     GROUP BY c.first_name;
     
     -- Display the result
 RAISE NOTICE 'Customer % has % rentals', cust_name, rental_count;
 
 END $$;
+
+DO $$
+DECLARE
+    message VARCHAR(100);
+BEGIN
+    message := 'Hello mohamed';
+    RAISE NOTICE 'THIS IS THE FIRST MESSAGE: %', message;
+END;
+$$ LANGUAGE plpgsql;
+
+ROLLBACK;
 
 
 
@@ -240,13 +251,29 @@ BEGIN
         ORDER BY name
     LOOP
         category_count := category_count + 1;
-        RAISE NOTICE '%: %', category_count, category_rec.name;  -- Fill in column
+        RAISE NOTICE '%: % #%', category_count, category_rec.name ,category_rec.category_id;  -- Fill in column
     END LOOP;
     
     RAISE NOTICE '';
     RAISE NOTICE 'Total categories: %', category_count;
 END $$;
 
+
+
+DO $$
+DECLARE
+    category_rec RECORD;
+BEGIN
+    FOR category_rec IN
+        SELECT c.name, COUNT(fc.film_id) AS film_count
+        FROM category c
+        LEFT JOIN film_category fc ON c.category_id = fc.category_id
+        GROUP BY c.name
+        ORDER BY c.name
+    LOOP
+        RAISE NOTICE '%: % films', category_rec.name, category_rec.film_count;
+    END LOOP;
+END $$ LANGUAGE plpgsql;
 
 -- ----------------------------------------------------------------------------
 -- Exercise 2.2: Processing with Accumulation (7 points)

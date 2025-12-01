@@ -516,48 +516,49 @@ ROLLBACK;
 -- Hint: Use POSITION() function or LIKE operator
 -- ============================================================================
 
+
 CREATE OR REPLACE FUNCTION validate_employee_email()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
+DECLARE
+    at_pos INTEGER;
+    dot_pos INTEGER;
 BEGIN
-    -- TODO: Check if email is NULL or empty
-    -- Hint: IF NEW.email IS NULL OR TRIM(NEW.email) = '' THEN
-    --           RAISE EXCEPTION 'Email cannot be empty';
-    --       END IF;
-    
-    -- TODO: Check if email contains '@'
-    -- Hint: IF POSITION('@' IN NEW.email) = 0 THEN
-    --           RAISE EXCEPTION 'Email must contain @';
-    --       END IF;
-    
-    -- TODO: Check if email contains '.' after '@'
-    -- Hint: You can check if there's a '.' after the '@' position
-    --       DECLARE at_pos INTEGER; dot_pos INTEGER;
-    --       at_pos := POSITION('@' IN NEW.email);
-    --       dot_pos := POSITION('.' IN SUBSTRING(NEW.email FROM at_pos));
-    --       IF dot_pos = 0 THEN RAISE EXCEPTION...
-    
-    -- TODO: Return NEW
-    -- Hint: RETURN NEW;
-    
+    IF NEW.email IS NULL OR TRIM(NEW.email) = '' THEN
+        RAISE EXCEPTION 'Email cannot be empty';
+    END IF;
+
+    at_pos := POSITION('@' IN NEW.email);
+    IF at_pos = 0 THEN
+        RAISE EXCEPTION 'Email must contain @';
+    END IF;
+
+    dot_pos := POSITION('.' IN SUBSTRING(NEW.email FROM at_pos));
+    IF dot_pos = 0 THEN
+        RAISE EXCEPTION 'Email must contain a dot (.) after @';
+    END IF;
+
+    RETURN NEW;
 END;
 $$;
 
+ROLLBACK;
+
 -- TODO: Create the trigger (uncomment and complete)
--- CREATE TRIGGER check_email_format
---     BEFORE INSERT OR UPDATE OF email ON employee
---     FOR EACH ROW
---     EXECUTE FUNCTION validate_employee_email();
+ CREATE TRIGGER check_email_format
+    BEFORE INSERT OR UPDATE OF email ON employee
+    FOR EACH ROW
+     EXECUTE FUNCTION validate_employee_email();
 
 -- Test your email validation:
--- BEGIN;
---     UPDATE employee SET email = 'invalid-email' WHERE employee_id = 1;  -- Should fail
--- ROLLBACK;
---
--- BEGIN;
---     UPDATE employee SET email = 'valid@email.com' WHERE employee_id = 1;  -- Should succeed
--- ROLLBACK;
+ BEGIN;
+     UPDATE employee SET email = 'invalid-email' WHERE employee_id = 1;  -- Should fail
+ ROLLBACK;
+
+ BEGIN;
+    UPDATE employee SET email = 'valid@email.com' WHERE employee_id = 1;  -- Should succeed
+ROLLBACK;
 
 
 -- ============================================================================
@@ -672,9 +673,17 @@ BEGIN
     
     -- TODO: Return NEW
     -- Hint: RETURN NEW;
+
+  
+    -- Set NEW.last_update to CURRENT_TIMESTAMP
+    NEW.last_update := CURRENT_TIMESTAMP;
     
+    -- Return NEW
+    RETURN NEW;
 END;
 $$;
+    
+
 
 -- TODO: Create the trigger (uncomment and complete)
 -- CREATE TRIGGER customer_auto_timestamp
@@ -682,7 +691,10 @@ $$;
 --     FOR EACH ROW
 --     EXECUTE FUNCTION auto_update_timestamp();
 
-
+CREATE TRIGGER customer_auto_timestamp
+    BEFORE UPDATE ON customer
+    FOR EACH ROW
+    EXECUTE FUNCTION auto_update_timestamp();
 -- ============================================================================
 -- SOLUTION FOR EXERCISE 3 (Uncomment to see answer)
 -- ============================================================================
