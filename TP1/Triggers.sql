@@ -178,7 +178,7 @@ DECLARE
     -- For testing purposes, you can override the hour here
     -- Set test_hour to NULL to use actual system time
     -- Set test_hour to a number (0-23) to simulate that hour
-    test_hour INTEGER := NULL;  -- Change to 8 or 18 to test blocking
+    test_hour INTEGER := 12;  -- Change to 8 or 18 to test blocking
 BEGIN
     -- Use test_hour if set, otherwise use actual time
     IF test_hour IS NOT NULL THEN
@@ -190,7 +190,7 @@ BEGIN
     END IF;
     
     -- Block updates outside 9 AM - 5 PM
-    IF current_hour < 9 OR current_hour >= 17 THEN
+    IF current_hour < NULL OR current_hour >= 17 THEN
         RAISE EXCEPTION 'Employee updates only allowed during business hours (9 AM - 5 PM). Current hour: %', 
             current_hour
         USING HINT = 'Please try again during business hours.';
@@ -202,6 +202,12 @@ BEGIN
 END;
 $$;
 
+----------------------
+SELECT trigger_name 
+FROM information_schema.triggers
+WHERE event_object_table = 'employee';
+----------------------------
+
 -- Step 2: Create the trigger
 CREATE TRIGGER enforce_business_hours
     BEFORE UPDATE ON employee
@@ -210,22 +216,39 @@ CREATE TRIGGER enforce_business_hours
 
 
 -- Test the statement-level trigger:
+
 -- Display current time
 SELECT TO_CHAR(CURRENT_TIMESTAMP, 'HH24:MI:SS') AS current_time,
        EXTRACT(HOUR FROM CURRENT_TIMESTAMP) AS current_hour;
 
 -- Test DURING working hours (modify test_hour in function to 10 to simulate)
+
+SELECT salary AS old_salary
+FROM employee
+WHERE employee_id = 1;
+
 BEGIN;
-    UPDATE employee SET salary = salary + 1000 WHERE employee_id = 1;
+
+    UPDATE employee 
+    SET salary = salary + 1000 
+    WHERE employee_id = 1;
+
     SELECT 'Update succeeded during business hours!' AS result;
+
+    SELECT salary AS new_salary
+    FROM employee
+    WHERE employee_id = 1;
+
+COMMIT;
+
 ROLLBACK;
 
 -- Test OUTSIDE working hours (modify test_hour in function to 18 to simulate)
 -- Expected: EXCEPTION with message blocking the update
 -- To test: Change test_hour to 18 in the function above, then run:
 -- BEGIN;
---     UPDATE employee SET salary = salary + 1000 WHERE employee_id = 1;
--- ROLLBACK;
+    UPDATE employee SET salary = salary + 1000 WHERE employee_id = 1;
+ROLLBACK;
 
 
 -- ============================================================================
@@ -346,7 +369,7 @@ BEGIN;
     WHERE employee_id = 1;
     
     -- Check audit log - ONE entry
-    SELECT * FROM employee_salary_audit ORDER BY changed_at DESC LIMIT 1;
+    SELECT * FROM employee_salary_audit ORDER BY changed_at DESC LIMIT 3;
     
     -- Update MULTIPLE employees
     UPDATE employee 
@@ -374,15 +397,14 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    -- TODO: Set the last_modified_by column to CURRENT_USER
-    -- Hint: NEW.last_modified_by := CURRENT_USER;
+    -- Set the last_modified_by column to CURRENT_USER
+    NEW.last_modified_by := CURRENT_USER;
     
-    -- TODO: Set the last_modified_at column to CURRENT_TIMESTAMP
-    -- Hint: NEW.last_modified_at := CURRENT_TIMESTAMP;
+    -- Set the last_modified_at column to CURRENT_TIMESTAMP
+    NEW.last_modified_at := CURRENT_TIMESTAMP;
     
-    -- TODO: Return NEW (this is required!)
-    -- Hint: RETURN NEW;
-    
+    -- Return NEW (required!)
+    RETURN NEW;
 END;
 $$;
 
@@ -393,11 +415,11 @@ CREATE TRIGGER auto_track_modifications
     EXECUTE FUNCTION track_employee_modifications();
 
 -- Test your trigger:
--- BEGIN;
---     UPDATE employee SET salary = 70000 WHERE employee_id = 1;
---     SELECT employee_id, salary, last_modified_by, last_modified_at 
---     FROM employee WHERE employee_id = 1;
--- ROLLBACK;
+ BEGIN;
+     UPDATE employee SET salary = 70000 WHERE employee_id = 1;
+     SELECT employee_id, salary, last_modified_by, last_modified_at 
+    FROM employee WHERE employee_id = 1;
+ROLLBACK;
 
 
 -- ============================================================================
