@@ -577,16 +577,49 @@ END $$;
 
 DO $$
 DECLARE
-    -- TODO: Declare variables and cursor
-    
+    -- Déclaration du curseur pour les locations des 30 derniers jours
+    cur_rentals CURSOR FOR
+        SELECT rental_id, rental_date, return_date, customer_id, inventory_id
+        FROM rental
+        WHERE rental_date >= (SELECT MAX(rental_date) - INTERVAL '30 days' FROM rental)
+        ORDER BY rental_date DESC
+        LIMIT 20;
+
+    rec_rental RECORD;
+    count_returned INT := 0;
+    count_not_returned INT := 0;
 BEGIN
-    -- TODO: Process rentals with cursor
-    
-    -- TODO: Categorize returned vs not returned
-    
-    -- TODO: Display summary
-    
+    -- Ouvrir le curseur
+    OPEN cur_rentals;
+
+    LOOP
+        -- Récupérer chaque ligne du curseur
+        FETCH cur_rentals INTO rec_rental;
+        EXIT WHEN NOT FOUND;
+
+        -- Vérifier si la location a été retournée
+        IF rec_rental.return_date IS NOT NULL THEN
+            RAISE NOTICE 'Rental ID: %, Customer ID: %, Inventory ID: %, Rental Date: %, Status: RETURNED',
+                         rec_rental.rental_id, rec_rental.customer_id, rec_rental.inventory_id, rec_rental.rental_date;
+            count_returned := count_returned + 1;
+        ELSE
+            RAISE NOTICE 'Rental ID: %, Customer ID: %, Inventory ID: %, Rental Date: %, Status: NOT RETURNED',
+                         rec_rental.rental_id, rec_rental.customer_id, rec_rental.inventory_id, rec_rental.rental_date;
+            count_not_returned := count_not_returned + 1;
+        END IF;
+    END LOOP;
+
+    -- Fermer le curseur
+    CLOSE cur_rentals;
+
+    -- Afficher le résumé
+    RAISE NOTICE '--- SUMMARY ---';
+    RAISE NOTICE 'Total Rentals Processed: %', count_returned + count_not_returned;
+    RAISE NOTICE 'Returned: %', count_returned;
+    RAISE NOTICE 'Not Returned: %', count_not_returned;
+
 END $$;
+
 
 
 -- ============================================================================
