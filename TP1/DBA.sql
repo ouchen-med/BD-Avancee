@@ -143,3 +143,24 @@ VACUUM ANALYZE rental;
 SELECT relname, n_live_tup, n_dead_tup, last_vacuum
 FROM pg_stat_user_tables
 WHERE relname = 'rental';
+
+
+SELECT 'Connections' AS metric,
+COUNT(*)::text AS value
+FROM pg_stat_activity
+WHERE datname = 'pagila'
+UNION ALL
+SELECT 'Database Size',
+pg_size_pretty(pg_database_size('pagila'))
+UNION ALL
+SELECT 'Dead Rows (Total)',
+SUM(n_dead_tup)::text
+FROM pg_stat_user_tables
+UNION ALL
+SELECT 'Cache Hit %',
+COALESCE(
+round(sum(heap_blks_hit) * 100.0 /
+NULLIF(sum(heap_blks_hit) + sum(heap_blks_read), 0), 1)::text,
+'N/A'
+)
+FROM pg_statio_user_tables;
