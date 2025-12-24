@@ -645,23 +645,23 @@ DECLARE
     films_by_rating CURSOR(p_rating film.rating%TYPE) FOR
         SELECT film_id, title, rating, rental_rate
         FROM film
-        WHERE rating = ___  -- Fill in the parameter name
+        WHERE rating = p_rating  -- Fill in the parameter name
         ORDER BY title
         LIMIT 5;
     
     film_rec RECORD;
 BEGIN
     RAISE NOTICE '=== PG RATED FILMS ===';
-    FOR film_rec IN films_by_rating('___') LOOP  -- Fill in 'PG'
+    FOR film_rec IN films_by_rating('PG') LOOP  -- Fill in 'PG'
         RAISE NOTICE '"%": % - $%', 
-            film_rec.title, film_rec.___, film_rec.rental_rate;
+            film_rec.title, film_rec.rating, film_rec.rental_rate;
     END LOOP;
     
     RAISE NOTICE '';
     RAISE NOTICE '=== R RATED FILMS ===';
-    FOR film_rec IN films_by_rating('___') LOOP  -- Fill in 'R'
+    FOR film_rec IN films_by_rating('R') LOOP  -- Fill in 'R'
         RAISE NOTICE '"%": % - $%', 
-            film_rec.___, film_rec.rating, film_rec.rental_rate;
+            film_rec.title, film_rec.rating, film_rec.rental_rate;
     END LOOP;
 END $$;
 
